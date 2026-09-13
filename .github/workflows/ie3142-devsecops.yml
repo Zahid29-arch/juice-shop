@@ -35,6 +35,16 @@ jobs:
         with:
           node-version: 24
 
+      - name: Verify encrypted GitHub secret
+        env:
+          IE3142_APP_SECRET: ${{ secrets.IE3142_APP_SECRET }}
+        run: |
+          if [ -z "$IE3142_APP_SECRET" ]; then
+            echo "Required GitHub Actions secret is missing"
+            exit 1
+          fi
+          echo "Encrypted secret injected successfully"
+
       - name: Install dependencies
         run: npm install
 
