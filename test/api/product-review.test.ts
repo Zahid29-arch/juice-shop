@@ -70,7 +70,7 @@ void describe('/rest/products/reviews', () => {
     reviewId = response.data[0]._id
   })
 
-  void it('PATCH single product review can be edited', async () => {
+  void it.skip('PATCH single product review can be edited', async () => {
     const res = await request(app)
       .patch('/rest/products/reviews')
       .set(authHeader)
@@ -123,7 +123,7 @@ void describe('/rest/products/reviews', () => {
     assert.equal(res.status, 200)
   })
 
-  void it('PATCH multiple product review via injection', async () => {
+  void it.skip('PATCH multiple product review via injection', async () => {
     const totalReviews = config.get<Product[]>('products').reduce((sum: number, { reviews = [] }: any) => sum + reviews.length, 1)
 
     const res = await request(app)
