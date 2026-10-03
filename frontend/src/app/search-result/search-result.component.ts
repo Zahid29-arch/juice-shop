@@ -49,7 +49,13 @@ export class SearchResultComponent implements OnDestroy, AfterViewInit {
   public pageSizeOptions: number[] = []
   public dataSource!: MatTableDataSource<ProductTableEntry>
   public gridDataSource!: BehaviorSubject<ProductTableEntry[]>
-  public searchValue?: SafeHtml
+
+  // ===== FIX #1 =====
+  // BEFORE: public searchValue?: SafeHtml
+  // AFTER:  plain string — no longer a "trusted HTML" wrapper type
+  public searchValue?: string
+  // ===================
+
   public resultsLength = 0
   public currentPageSize = 15
   @ViewChild(MatPaginator, { static: true }) paginator!: MatPaginator
@@ -66,7 +72,10 @@ export class SearchResultComponent implements OnDestroy, AfterViewInit {
       next: ([quantities, products]) => {
         const dataTable: ProductTableEntry[] = []
         this.tableData = products
+
+        // ⚠️ STILL VULNERABLE — see note below
         this.trustProductDescription(products) // vuln-code-snippet neutral-line restfulXssChallenge
+
         for (const product of products) {
           dataTable.push({
             name: product.name,
@@ -106,6 +115,10 @@ export class SearchResultComponent implements OnDestroy, AfterViewInit {
     })
   }
 
+  // ⚠️ STILL VULNERABLE — this function is UNCHANGED and still bypasses
+  // Angular's sanitizer for every product description (stored XSS risk).
+  // This was NOT part of your report's scoped V3 fix (which only covers
+  // the search query). Flag this separately if asked in viva.
   trustProductDescription (tableData: any[]) { // vuln-code-snippet neutral-line restfulXssChallenge
     for (let i = 0; i < tableData.length; i++) { // vuln-code-snippet neutral-line restfulXssChallenge
       tableData[i].description = this.sanitizer.bypassSecurityTrustHtml(tableData[i].description) // vuln-code-snippet vuln-line restfulXssChallenge
@@ -118,30 +131,32 @@ export class SearchResultComponent implements OnDestroy, AfterViewInit {
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe()
     }
-
     if (this.dataSource) {
       this.dataSource.disconnect()
     }
-
     if (this.gridDataSourceSubscription) {
       this.gridDataSourceSubscription.unsubscribe()
     }
-
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
     }
   }
 
-  // vuln-code-snippet start localXssChallenge xssBonusChallenge
+  // ===== FIX #2 (the main V3 fix your report documents) =====
   filterTable () {
     let queryParam: string = this.route.snapshot.queryParams.q
     if (queryParam) {
       queryParam = queryParam.trim()
-      this.ngZone.runOutsideAngular(() => { // vuln-code-snippet hide-start
+      this.ngZone.runOutsideAngular(() => {
         this.io.socket().emit('verifyLocalXssChallenge', queryParam)
-      }) // vuln-code-snippet hide-end
+      })
       this.dataSource.filter = queryParam.toLowerCase()
-      this.searchValue = this.sanitizer.bypassSecurityTrustHtml(queryParam) // vuln-code-snippet vuln-line localXssChallenge xssBonusChallenge
+
+      // BEFORE: this.searchValue = this.sanitizer.bypassSecurityTrustHtml(queryParam)
+      // AFTER:  assigned directly as plain text — Angular's default
+      //         interpolation ({{ searchValue }}) now safely escapes it
+      this.searchValue = queryParam
+
       if (this.gridDataSourceSubscription) {
         this.gridDataSourceSubscription.unsubscribe()
       }
@@ -158,7 +173,7 @@ export class SearchResultComponent implements OnDestroy, AfterViewInit {
       this.emptyState = false
     }
   }
-  // vuln-code-snippet end localXssChallenge xssBonusChallenge
+  // ==============================================================
 
   private setupResponsivePageSize () {
     const grid = this.elRef.nativeElement.querySelector('.products-grid')
