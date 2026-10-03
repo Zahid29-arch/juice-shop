@@ -8,7 +8,7 @@
 /repo/frontend/src/app/oauth/oauth.component.spec.ts:generic-api-key:91
 /repo/frontend/src/app/oauth/oauth.component.spec.ts:generic-api-key:98
 /repo/infrastructure/terraform/networking.tf:private-key:171
-/repo/routes/login.ts:generic-api-key:64
+/repo/routes/login.ts:generic-api-key:74
 /repo/lib/insecurity.ts:private-key:21
 /repo/test/api/basket.test.ts:generic-api-key:114
 /repo/test/api/basket.test.ts:generic-api-key:170
